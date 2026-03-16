@@ -1,0 +1,95 @@
+############################
+# OS / Editor noise
+############################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+
+.vscode/
+.idea/
+
+############################
+# Python cache / build
+############################
+__pycache__/
+*.py[cod]
+*$py.class
+
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+
+############################
+# Virtual environments
+############################
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+############################
+# Environment / secrets
+############################
+.env
+.env.*.local
+.python-version
+
+############################
+# Testing / coverage
+############################
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+############################
+# Type checking / tooling
+############################
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+############################
+# Jupyter
+############################
+.ipynb_checkpoints/
+
+############################
+# Logs / runtime output
+############################
+logs/
+*.log
+*.out
+*.err
+
+############################
+# Data / models (large, regenerated)
+############################
+data/
+datasets/
+tmp/
+temp/
+models/
+checkpoints/
+outputs/
+results/
+
