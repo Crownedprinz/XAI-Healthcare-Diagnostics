@@ -37,7 +37,9 @@ TASKS = [
     "Support Devices",
 ]
 
-# Map CheXlocalize labels to TorchXRayVision output names.
+# Map CheXpert/CheXlocalize labels to TorchXRayVision output names.
+# XRV DenseNet exposes the following relevant targets (ordering matters):
+# ['Atelectasis', 'Consolidation', '', 'Pneumothorax', 'Edema', '', '', 'Effusion', 'Pneumonia', '', 'Cardiomegaly', '', '', '', 'Lung Lesion', 'Fracture', 'Lung Opacity', 'Enlarged Cardiomediastinum']
 TASK_TO_XRV = {
     "Enlarged Cardiomediastinum": "Enlarged Cardiomediastinum",
     "Cardiomegaly": "Cardiomegaly",
@@ -47,8 +49,8 @@ TASK_TO_XRV = {
     "Consolidation": "Consolidation",
     "Atelectasis": "Atelectasis",
     "Pneumothorax": "Pneumothorax",
-    "Pleural Effusion": "Pleural Effusion",
-    "Support Devices": "Support Devices",
+    "Pleural Effusion": "Effusion",  # XRV target name
+    # Support Devices is not available in the XRV target list; it will be skipped.
 }
 
 
@@ -148,11 +150,29 @@ def build_model(device: torch.device) -> torch.nn.Module:
     return model
 
 
+def select_tasks(model: torch.nn.Module) -> Tuple[List[str], List[int]]:
+    model_targets = list(model.targets)
+    selected_tasks: List[str] = []
+    target_indices: List[int] = []
+    skipped: List[str] = []
+    for t in TASKS:
+        mapped = TASK_TO_XRV.get(t, "")
+        if not mapped or mapped not in model_targets:
+            skipped.append(t)
+            continue
+        selected_tasks.append(t)
+        target_indices.append(model_targets.index(mapped))
+    if skipped:
+        console.print(f"[yellow]Skipping tasks not present in XRV targets: {skipped}[/yellow]")
+    return selected_tasks, target_indices
+
+
 def evaluate(
     model: torch.nn.Module,
     loader: data.DataLoader,
     device: torch.device,
     tasks: List[str],
+    target_indices: List[int],
 ) -> Dict[str, Dict[str, float]]:
     y_true: List[np.ndarray] = []
     y_logit: List[np.ndarray] = []
@@ -161,6 +181,7 @@ def evaluate(
         for batch in tqdm(loader, desc="Inference", ncols=100):
             imgs = batch["img"].to(device)
             logits = model(imgs)
+            logits = logits[:, target_indices]
             y_true.append(batch["y"].cpu().numpy())
             y_logit.append(logits.cpu().numpy())
 
@@ -229,7 +250,9 @@ def main() -> None:
     device = resolve_device(args.device)
     console.print(f"Using device: {device}")
 
-    dataset = CheXpertLocalDataset(args.csv, args.images_root, TASKS)
+    model = build_model(device)
+    tasks_used, target_indices = select_tasks(model)
+    dataset = CheXpertLocalDataset(args.csv, args.images_root, tasks_used)
     loader = data.DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -237,11 +260,9 @@ def main() -> None:
         shuffle=False,
         pin_memory=device.type == "cuda",
     )
-
-    model = build_model(device)
-    results, y_true, y_prob = evaluate(model, loader, device, TASKS)
+    results, y_true, y_prob = evaluate(model, loader, device, tasks_used, target_indices)
     print_table(results)
-    save_outputs(args.out_dir, args.split_name, results, y_true, y_prob, TASKS)
+    save_outputs(args.out_dir, args.split_name, results, y_true, y_prob, tasks_used)
 
 
 if __name__ == "__main__":
