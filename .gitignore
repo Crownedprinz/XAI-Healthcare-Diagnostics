@@ -33,6 +33,7 @@ wheels/
 ############################
 # Virtual environments
 ############################
+artifacts/
 .venv/
 venv/
 env/
