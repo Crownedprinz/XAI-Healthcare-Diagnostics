@@ -204,6 +204,13 @@ def evaluate(
         metrics["f1@0.5"] = float(f1_score(yt, yp >= 0.5))
         results[task] = metrics
 
+    macro = {
+        "auroc": float(np.nanmean([results[t]["auroc"] for t in tasks])),
+        "auprc": float(np.nanmean([results[t]["auprc"] for t in tasks])),
+        "f1@0.5": float(np.nanmean([results[t]["f1@0.5"] for t in tasks])),
+    }
+    results["MACRO (avg classes)"] = macro
+
     return results, y_true_np, y_prob_np
 
 
